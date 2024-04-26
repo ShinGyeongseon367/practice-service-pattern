@@ -59,3 +59,36 @@ def test_400_message_for_invalid_sku(add_stock):
     response = requests.post(f'{url}/allocate', json=data)
     assert response.status_code == 400
     assert response.json()['message'] == f"Invalid sku {sku}"
+
+
+@pytest.mark.usefixtures('restart_api')
+def test_happy_path_returns_201_and_allocated_batch(add_stock):
+    sku = random_sku()
+    earlybatch = random_batchref(1)
+    laterbatch = random_batchref(2)
+    otherbatch = random_batchref(3)
+
+    add_stock([
+        (laterbatch, sku, 100, '2011-01-02'),
+        (earlybatch, sku, 100, '2011-01-02'),
+        (otherbatch, sku, 100, '2011-01-02')
+    ])
+
+    data = {'orderid': random_orderid(), 'sku': sku, 'qty': 3}
+
+    url = config.get_api_url()
+    r = requests.post(f'{url}/allocate', json=data)
+
+    assert r.status_code == 201
+    assert r.json()['batchref'] == earlybatch
+
+
+@pytest.mark.usefixtures('restart_api')
+def test_unhappy_path_and_return_400_and_error_message():
+    unkown_sku = random_sku()
+    orderid = random_orderid()
+    data = {'orderid': orderid, 'sku': unkown_sku}
+    url = config.get_api_url()
+    r = requests.post(f'{url}/allocate', json=data)
+    assert r.status_code == 400
+    assert r.json()['message'] == f'Invalid sku {unkown_sku}'

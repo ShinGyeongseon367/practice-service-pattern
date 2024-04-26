@@ -2,14 +2,11 @@ from flask import app, Flask, render_template, request, jsonify
 
 import model
 import repository
+import services
 
 
 def get_session():
     pass
-
-
-def is_valid_sku(line, batches):
-    return line.sku in {b.sku for b in batches}
 
 
 @app.App.route('/allocate', methods=['GET', 'POST'])
@@ -18,16 +15,16 @@ def allocate_endpoint():
         pass
     elif request.method == 'POST':
         session = get_session()
-        batches = repository.SqlAlchemyRepository(session).list()
-        line = model.OrderLine[request.json.get('order_id'), request.json.get('sku'), request.json.get('qty'),]
-
-        if not is_valid_sku(line, batches):
-            return jsonify({'message': f'Invalid sku{line.sku}'}), 400
+        repo = repository.SqlAlchemyRepository(session)
+        line = model.OrderLine(
+            request.json['orderid'],
+            request.json['sku'],
+            request.json['qty']
+        )
 
         try:
-            batchref = model.allocate(line, batches)
-        except model.OutOfStock as e:
+            batchref = services.allocate(line, repo, session)
+        except (model.OutOfStock, services.InvalidSku) as e:
             return jsonify({'message': str(e)}), 400
 
-        session.commit()
         return jsonify({'batchref': batchref}), 201
