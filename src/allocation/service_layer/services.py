@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Optional
 from datetime import date
 
-from allocation.domain import model
-from allocation.domain.model import OrderLine
-from allocation.service_layer import unit_of_work
+from src.allocation.domain import model
+from src.allocation.domain.model import OrderLine
+from src.allocation.service_layer import unit_of_work
 
 
 class InvalidSku(Exception):

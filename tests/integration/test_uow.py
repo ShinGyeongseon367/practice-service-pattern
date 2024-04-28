@@ -1,6 +1,6 @@
 import pytest
-from allocation.domain import model
-from allocation.service_layer import unit_of_work
+from src.allocation.domain import model
+from src.allocation.service_layer import unit_of_work
 
 
 def insert_batch(session, ref, sku, qty, eta):
@@ -31,16 +31,15 @@ def test_uow_can_retrieve_a_batch_and_allocate_to_it(session_factory):
 
     pytest.fail("decide what your UoW looks like first?")
     # either:
-    # uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
+    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory) #1
     # with uow:
 
     # or perhaps
-    # with unit_of_work.start(session_factory) as uow: ?
-
-    #     batch = uow.batches.get(reference='batch1')
-    #     line = model.OrderLine('o1', 'HIPSTER-WORKBENCH', 10)
-    #     batch.allocate(line)
-    #     uow.commit()
+    with unit_of_work.start(session_factory) as uow:
+        batch = uow.batches.get(reference='batch1') #2
+        line = model.OrderLine('o1', 'HIPSTER-WORKBENCH', 10)
+        batch.allocate(line)
+        uow.commit() #3
 
     batchref = get_allocated_batch_ref(session, "o1", "HIPSTER-WORKBENCH")
     assert batchref == "batch1"
