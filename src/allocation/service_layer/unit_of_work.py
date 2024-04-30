@@ -5,12 +5,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
-from allocation import config
-from allocation.adapters import repository
+from src.allocation import config
+from src.allocation.adapters import repository
+from src.allocation.domain import model
 
 
 class AbstractUnitOfWork(abc.ABC):
-    products: repository.AbstractRepository
+    products: repository.AbstractProductRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
         return self

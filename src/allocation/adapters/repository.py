@@ -1,17 +1,19 @@
 import abc
-from allocation.domain import model
+from src.allocation.domain import model
 
 
-class AbstractRepository(abc.ABC):
-    def add(self, batch: model.Batch):
+class AbstractProductRepository(abc.ABC):
+
+    @abc.abstractmethod
+    def add(self, product):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get(self, reference) -> model.Batch:
+    def get(self, sku) -> model.Product:
         raise NotImplementedError
 
 
-class SqlAlchemyRepository(AbstractRepository):
+class SqlAlchemyRepository(AbstractProductRepository):
     def __init__(self, session):
         self.session = session
 

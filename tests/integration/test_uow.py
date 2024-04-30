@@ -1,11 +1,12 @@
 # pylint: disable=broad-except
+import abc
 import threading
 import time
 import traceback
 from typing import List
 import pytest
-from allocation.domain import model
-from allocation.service_layer import unit_of_work
+from src.allocation.domain import model
+from src.allocation.service_layer import unit_of_work
 from ..random_refs import random_sku, random_batchref, random_orderid
 
 
@@ -40,7 +41,7 @@ def test_uow_can_retrieve_a_batch_and_allocate_to_it(session_factory):
 
     uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
     with uow:
-        product = uow.products.get(sku="HIPSTER-WORKBENCH")
+        product = uow.products.get("HIPSTER-WORKBENCH")
         line = model.OrderLine("o1", "HIPSTER-WORKBENCH", 10)
         product.allocate(line)
         uow.commit()
@@ -87,7 +88,7 @@ def try_to_allocate(orderid, sku, exceptions):
         exceptions.append(e)
 
 
-@pytest.mark.skip("do this for an advanced challenge")
+# @pytest.mark.skip("do this for an advanced challenge")
 def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory):
     sku, batch = random_sku(), random_batchref()
     session = postgres_session_factory()
@@ -96,7 +97,7 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
 
     order1, order2 = random_orderid(1), random_orderid(2)
     exceptions = []  # type: List[Exception]
-    try_to_allocate_order1 = lambda: try_to_allocate(order1, sku, exceptions)
+    try_to_allocate_order1 = lambda: try_to_allocate(order1, sku, exceptions) #Q1. 굳이 여기서 lambda 를 사용한 이유
     try_to_allocate_order2 = lambda: try_to_allocate(order2, sku, exceptions)
     thread1 = threading.Thread(target=try_to_allocate_order1)
     thread2 = threading.Thread(target=try_to_allocate_order2)
@@ -110,7 +111,7 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
         dict(sku=sku),
     )
     assert version == 2
-    [exception] = exceptions
+    [exception] = exceptions #Q2. 이거는 list를 저기다가 따로 넣는 이유가 있는가 ?
     assert "could not serialize access due to concurrent update" in str(exception)
 
     orders = session.execute(
