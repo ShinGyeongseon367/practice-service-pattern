@@ -11,6 +11,10 @@ app = Flask(__name__)
 orm.start_mappers()
 
 
+@app.route("/", methods=["GET"])
+def main():
+    return "Server Status OK!", 200
+
 @app.route("/add_batch", methods=["POST"])
 def add_batch():
     eta = request.json["eta"]

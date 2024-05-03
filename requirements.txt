@@ -1,5 +1,5 @@
 # app
-sqlalchemy
+sqlalchemy < 2.0 # Release: 2.0.29 , Release Date: March 23, 2024
 flask
 psycopg2-binary
 
