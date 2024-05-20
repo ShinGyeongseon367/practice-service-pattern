@@ -1,7 +1,8 @@
 from unittest import mock
 import pytest
 from allocation.adapters import repository
-from allocation.service_layer import services, unit_of_work
+from allocation.domain import events
+from allocation.service_layer import handler, unit_of_work, messagebus
 
 
 class FakeRepository(repository.AbstractRepository):
@@ -28,18 +29,24 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 
 
-def test_add_batch_for_new_product():
-    uow = FakeUnitOfWork()
-    services.add_batch("b1", "CRUNCHY-ARMCHAIR", 100, None, uow)
-    assert uow.products.get("CRUNCHY-ARMCHAIR") is not None
-    assert uow.committed
+class TestAddBatch:
+    def test_add_batch_for_new_product(self):
+        uow = FakeUnitOfWork()
+        # services.add_batch("b1", "CRUNCHY-ARMCHAIR", 100, None, uow)
+        messagebus.handle(
+            event=events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None), uow
+        )
+        assert uow.products.get("CRUNCHY-ARMCHAIR") is not None
+        assert uow.committed
 
 
-def test_add_batch_for_existing_product():
-    uow = FakeUnitOfWork()
-    services.add_batch("b1", "GARISH-RUG", 100, None, uow)
-    services.add_batch("b2", "GARISH-RUG", 99, None, uow)
-    assert "b2" in [b.reference for b in uow.products.get("GARISH-RUG").batches]
+    def test_add_batch_for_existing_product(self):
+        uow = FakeUnitOfWork()
+        # services.add_batch("b1", "GARISH-RUG", 100, None, uow)
+        # services.add_batch("b2", "GARISH-RUG", 99, None, uow)
+        messagebus.handle(events.BatchCreated("b1", "GARISH-RUG", 100, None, uow), uow)
+        messagebus.handle(events.BatchCreated("b2", "GARISH-RUG", 99, None, uow), uow)
+        assert "b2" in [b.reference for b in uow.products.get("GARISH-RUG").batches]
 
 
 def test_allocate_returns_allocation():

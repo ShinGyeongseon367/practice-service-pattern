@@ -1,11 +1,17 @@
 from typing import List, Dict, Callable, Type
 from allocation.adapters import email
 from allocation.domain import events
+from allocation.service_layer.unit_of_work import AbstractUnitOfWork
 
 
-def handle(event: events.Event):
-    for handler in HANDLERS[type(event)]:
-        handler(event)
+def handle(event: events.Event, uow: AbstractUnitOfWork):
+    queue = [event]
+    while queue:
+        event = queue.pop(0)
+        for handler in HANDLERS[type(event)]:
+            handler(event, uow=uow)
+            queue.extend(uow.collect_new_events)
+
 
 
 def send_out_of_stock_notification(event: events.OutOfStock):
