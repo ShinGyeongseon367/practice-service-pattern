@@ -16,7 +16,7 @@ class InvalidSku(Exception):
 
 def add_batch(
         event: events.BatchCreated,
-    uow: unit_of_work.AbstractUnitOfWork,
+        uow: unit_of_work.AbstractUnitOfWork,
 ):
     with uow:
         product = uow.products.get(sku=event.sku)
@@ -36,9 +36,9 @@ def allocate(
         product = uow.products.get(sku=line.sku)
         if product is None:
             raise InvalidSku(f"Invalid sku {line.sku}")
-        batchref = product.allocate(line)
+        batch_reference = product.allocate(line)
         uow.commit()
-        return batchref
+        return batch_reference
 
 
 def send_out_of_stock_notification(event: events.Event, uow: unit_of_work.AbstractUnitOfWork):
