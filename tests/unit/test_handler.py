@@ -42,7 +42,7 @@ class FakeUnitOfWorkWithFakeMessageBus(FakeUnitOfWork):
         super().__init__()
         self.events_published = [] # type: List[events.Event]
 
-    def events_published(self):
+    def events_publish(self):
         for product in self.products.seen:
             while product.events:
                 self.events_published.append(product.events.pop(0))
@@ -83,7 +83,6 @@ class TestAllocate:
         uow = FakeUnitOfWork()
         handler.add_batch(events.BatchCreated("b1", "AREALSKU", 100, None), uow)
 
-        # TODO: 확인 해봅시다.
         with pytest.raises(handler.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
             created_allocation = events.AllocationRequired("o1", "NONEXISTENTSKU", 10)
             handler.allocate(created_allocation, uow)
@@ -120,7 +119,7 @@ class TestCahngeBatchQuantity:
             # events.BatchQuantityChanged("batch1", "ADORABLE-SETTEE")
             events.BatchCreated("batch1", "ADORABLE-SETTEE", 100, None), uow
         )
-        [batch] = uow.products.get(sky="ADORABLE-SETTEE").batches
+        [batch] = uow.products._get("ADORABLE-SETTEE").batches
         assert batch.available_quantity == 100
 
         messagebus.handle(events.BatchQuantityChanged("batch1", 50), uow)
@@ -136,13 +135,13 @@ class TestCahngeBatchQuantity:
         ]
         for e in event_history:
             messagebus.handle(e, uow)
-        [batch1, batch2] = uow.products.get(sku="INDIFFERENT-TABLE").batches
-        assert batch1 == 10
-        assert batch2 == 50
+        [batch1, batch2] = uow.products._get("INDIFFERENT-TABLE").batches
+        assert batch1.available_quantity == 10
+        assert batch2.available_quantity == 50
 
         messagebus.handle(events.BatchQuantityChanged("batch1", 25), uow)
-        assert batch1 == 5
-        assert batch2 == 30
+        assert batch1.available_quantity == 5
+        assert batch2.available_quantity == 30
 
 
 def test_reallocate_if_necessary_isolated():
@@ -157,12 +156,14 @@ def test_reallocate_if_necessary_isolated():
     for e in event_history:
         messagebus.handle(e, uow)
     [batch1, batch2] = uow.products.get(sku="INDIFFERENT-TABLE").batches
-    assert batch1 == 10
-    assert batch2 == 50
+    assert batch1.available_quantity == 10
+    assert batch2.available_quantity == 50
 
     messagebus.handle(events.BatchQuantityChanged("batch1", 25), uow)
 
+    uow.events_publish()
     [reallocation_event] = uow.events_published
+
     assert isinstance(reallocation_event, events.AllocationRequired)
     assert reallocation_event.orderid in {'order1', 'order2'}
     assert reallocation_event.sku == "INDIFFERENT-TABLE"
