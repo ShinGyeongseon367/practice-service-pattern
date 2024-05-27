@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 from allocation.adapters import repository
 from allocation.domain import events
-from allocation.service_layer import handler, unit_of_work, messagebus
+from allocation.service_layer import handlers, unit_of_work, messagebus
 
 
 class FakeRepository(repository.AbstractRepository):
@@ -73,35 +73,35 @@ class TestAllocate:
     def test_allocate_returns_allocation(self):
         uow = FakeUnitOfWork()
         batch_created = events.BatchCreated("batch1", "COMPLICATED-LAMP", 100, None)
-        handler.add_batch(batch_created, uow)
+        handlers.add_batch(batch_created, uow)
 
         created_allocate = events.AllocationRequired("o1", "COMPLICATED-LAMP", 10)
-        result = handler.allocate(created_allocate, uow)
+        result = handlers.allocate(created_allocate, uow)
         assert result == "batch1"
 
     def test_allocate_errors_for_invalid_sku(self):
         uow = FakeUnitOfWork()
-        handler.add_batch(events.BatchCreated("b1", "AREALSKU", 100, None), uow)
+        handlers.add_batch(events.BatchCreated("b1", "AREALSKU", 100, None), uow)
 
-        with pytest.raises(handler.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
+        with pytest.raises(handlers.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
             created_allocation = events.AllocationRequired("o1", "NONEXISTENTSKU", 10)
-            handler.allocate(created_allocation, uow)
+            handlers.allocate(created_allocation, uow)
 
 
 def test_allocate_commits():
     uow = FakeUnitOfWork()
     created_batch_event = events.BatchCreated("b1", "OMINOUS-MIRROR", 100, None)
-    handler.add_batch(created_batch_event, uow)
+    handlers.add_batch(created_batch_event, uow)
 
     created_allocation_event = events.AllocationRequired("o1", "OMINOUS-MIRROR", 10)
-    handler.allocate(created_allocation_event, uow)
+    handlers.allocate(created_allocation_event, uow)
     assert uow.committed
 
 
 def test_sends_email_on_out_of_stock_error():
     uow = FakeUnitOfWork()
     created_batch_event = events.BatchCreated("b1", "POPULAR-CURTAINS", 9, None)
-    handler.add_batch(created_batch_event, uow)
+    handlers.add_batch(created_batch_event, uow)
 
     with mock.patch("allocation.adapters.email.send_mail") as mock_send_mail:
         created_allocate_event = events.AllocationRequired("o1", "POPULAR-CURTAINS", 10)

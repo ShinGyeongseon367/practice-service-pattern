@@ -3,7 +3,7 @@ from flask import Flask, request
 
 from allocation.adapters import orm
 from allocation.domain import events
-from allocation.service_layer import handler, unit_of_work, messagebus
+from allocation.service_layer import handlers, unit_of_work, messagebus
 
 app = Flask(__name__)
 orm.start_mappers()
@@ -32,7 +32,7 @@ def allocate_endpoint():
         event = events.AllocationRequired(orderid=request.json["orderid"], sku=request["sku"], qty=request.json["qty"])
         results = messagebus.handle(event, unit_of_work.SqlAlchemyUnitOfWork())
         batch_ref = results.pop(0)
-    except handler.InvalidSku as e:
+    except handlers.InvalidSku as e:
         return {"message": str(e)}, 400
 
     return {"batchref": batch_ref}, 201
